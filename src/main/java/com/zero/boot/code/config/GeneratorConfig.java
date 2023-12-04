@@ -20,7 +20,7 @@ public class GeneratorConfig implements Serializable {
 
     private String path;
 
-    private String perfix;
+    private String prefix;
 
     private Boolean cover;
 
@@ -42,17 +42,17 @@ public class GeneratorConfig implements Serializable {
         config.setTableName(tableName);
         config.setPack(pack);
         config.setPath(path);
-        config.setPerfix("t_");
+        config.setPrefix("t_");
         config.setCover(true);
         config.setColumns(columns);
         return config;
     }
 
-    private static String getPath(final String perfix, final String tableName) {
-        if (StringUtils.isEmpty(perfix)) {
+    private static String getPath(final String prefix, final String tableName) {
+        if (StringUtils.isEmpty(prefix)) {
             return "/" + tableName.replaceAll("_", "/");
         }
-        return "/" + tableName.replaceFirst(perfix, "").replaceAll("_", "/");
+        return "/" + tableName.replaceFirst(prefix, "").replaceAll("_", "/");
     }
 
     private static String getPack(final String entityName) {

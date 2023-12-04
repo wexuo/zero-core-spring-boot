@@ -32,7 +32,7 @@ public class TemplateData implements Serializable {
 
         entityName = entityName.substring(entityName.lastIndexOf(".") + 1);
 
-        final String perfix = config.getPerfix();
+        final String perfix = config.getPrefix();
 
         final char c = entityName.replaceFirst(perfix, "").charAt(0);
         final char l = Character.toLowerCase(c);

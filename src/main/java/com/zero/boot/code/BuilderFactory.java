@@ -1,6 +1,8 @@
 package com.zero.boot.code;
 
 
+import com.zero.boot.code.config.GeneratorConfig;
+import com.zero.boot.code.data.TableData;
 import com.zero.boot.code.data.TemplateData;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -8,6 +10,7 @@ import freemarker.template.TemplateException;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 
+import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -15,8 +18,29 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class BuilderFactory {
+
+    public static List<Path> build(final EntityManager manager){
+        List<TableData> tables = TemplateBuilder.getTableData(manager);
+        return tables.stream().map(tableData -> {
+            try {
+                return build(tableData);
+            } catch (final Exception e) {
+                // 忽略
+            }
+            return null;
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    public static Path build(final TableData tableData) throws Exception {
+        GeneratorConfig config = GeneratorConfig.covert(tableData);
+        TemplateData templateData = TemplateData.covert(tableData, config);
+        return build(templateData);
+    }
 
     public static Path build(final TemplateData data) throws Exception {
         final File backendFileDir = ResourceUtils.getFile("classpath:templates");
