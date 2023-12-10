@@ -1,6 +1,6 @@
 package ${pack}.service;
 
-import ${pack}.bean.${entityName};
+import ${entityPackage};
 import ${pack}.repository.${entityName}Repository;
 import com.zero.boot.core.service.BaseService;
 import org.springframework.stereotype.Service;

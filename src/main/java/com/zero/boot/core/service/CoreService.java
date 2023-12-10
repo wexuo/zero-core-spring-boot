@@ -1,47 +1,40 @@
+/*
+ * Copyright (c) 2023 wexuo. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ */
+
 package com.zero.boot.core.service;
 
-import com.zero.boot.core.handler.BaseRequestMappingHandlerMapping;
+import com.zero.boot.code.BuilderFactory;
+import com.zero.boot.code.config.GeneratorConfig;
+import com.zero.boot.core.data.EpsData;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import javax.annotation.Resource;
-import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityManager;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class CoreService {
 
     @Resource
-    private EntityManagerFactory entityManagerFactory;
+    private EntityManager entityManager;
 
-    @Resource
-    private WebApplicationContext context;
-
-    public void eps() {
+    public EpsData eps() {
         // 获取所有的 JPA Entity
-        final RequestMappingHandlerMapping handlerMapping = context.getBean(RequestMappingHandlerMapping.class);
-        final BaseRequestMappingHandlerMapping baseHandlerMapping = context.getBean(BaseRequestMappingHandlerMapping.class);
-        final List<RequestMappingHandlerMapping> mappings = Stream.of(handlerMapping, baseHandlerMapping).collect(Collectors.toList());
-        for (final RequestMappingHandlerMapping mapping : mappings) {
-            final Map<RequestMappingInfo, HandlerMethod> mappingInfoHandlerMethodMap = mapping.getHandlerMethods();
-            for (final Map.Entry<RequestMappingInfo, HandlerMethod> entry : mappingInfoHandlerMethodMap.entrySet()) {
-                final RequestMappingInfo mappingInfo = entry.getKey();
-                final HandlerMethod handlerMethod = entry.getValue();
-                // 获取接口路径
-                for (final String pattern : mappingInfo.getPatternsCondition().getPatterns()) {
-                    System.out.println("接口路径：" + pattern);
-                }
+        return null;
+    }
 
-                // 获取请求返回类型
-                final Class<?> returnType = handlerMethod.getMethod().getReturnType();
-                System.out.println("请求返回类型：" + returnType);
-            }
-        }
+    public List<GeneratorConfig> getGeneratorConfig() {
+        return BuilderFactory.getTemplateData(entityManager);
+    }
+
+    public String updateGeneratorConfig(final GeneratorConfig config) throws IOException {
+        return BuilderFactory.updateGeneratorConfig(config);
+    }
+
+    public void generate(final String tableName) throws Exception {
+        BuilderFactory.build(tableName, entityManager);
     }
 }

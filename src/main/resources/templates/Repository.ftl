@@ -1,6 +1,6 @@
 package ${pack}.repository;
 
-import ${pack}.bean.${entityName};
+import ${entityPackage};
 import com.zero.boot.core.repository.BaseRepository;
 import org.springframework.stereotype.Repository;
 

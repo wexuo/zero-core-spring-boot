@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2023 wexuo. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ */
+
 package com.zero.boot.core.service;
 
 import com.zero.boot.core.query.QueryAccess;
@@ -30,8 +35,11 @@ public class BaseService<T, ID, R extends BaseRepository<T, ID>> {
         repository.deleteAllByIdInBatch(ids);
     }
 
-    public List<T> list() {
-        return repository.findAll();
+    public <Q extends QueryAccess> List<T> list(final Q query) {
+        if (Objects.isNull(query)) {
+            return repository.findAll();
+        }
+        return repository.findAll((root, criteriaQuery, criteriaBuilder) -> QueryHelper.getPredicate(root, query, criteriaBuilder));
     }
 
     public <Q extends QueryAccess> Page<T> page(final Q query, final Pageable pageable) {

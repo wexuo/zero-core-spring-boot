@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2023 wexuo. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ */
+
 package com.zero.boot.core.data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,8 +35,8 @@ public class Result<T> {
         return new Result<T>(HttpStatus.OK.value(), "", data);
     }
 
-    public static <T> Result<T> forbidden() {
-        return new Result<>(HttpStatus.FORBIDDEN.value(), "", null);
+    public static <T> Result<T> error(final HttpStatus httpStatus) {
+        return new Result<>(httpStatus.value(), httpStatus.getReasonPhrase(), null);
     }
 
     public static <T> Result<T> error(final String message) {

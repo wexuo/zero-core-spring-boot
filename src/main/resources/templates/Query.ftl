@@ -1,35 +1,29 @@
 package ${pack}.query;
 
-import com.zero.boot.core.query.DataQuery;
 import com.zero.boot.core.query.BaseQueryAccess;
+import com.zero.boot.core.query.*;
+import ${entityPackage};
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class ${entityName}Query extend BaseQueryAccess {
-<#if querys??>
-    <#list querys as column>
-        <#if column.queryType = 'EQUAL'>
-            /** 精确 */
-            @DataQuery(type = DataQuery.Type.LIKE, property = "${column.property}")
-            private ${column.propertyType} ${column.property};
-        </#if>
-        <#if column.queryType = 'LIKE'>
-            /** 模糊 */
-            @DataQuery(type = DataQuery.Type.LIKE, property = "${column.property}")
-            private ${column.propertyType} ${column.property};
-        </#if>
-        <#if column.queryType = 'NOT_EQUAL'>
-            /** 不等于 */
-            @DataQuery(type = DataQuery.Type.NOT_EQUAL)
-            private ${column.propertyType} ${column.property};
-        </#if>
-    </#list>
+@EqualsAndHashCode(callSuper = true)
+@Query(${entityName}.class)
+<#--@formatter:off-->
+<#if likes??>
+@QueryLike(value = {<#assign index = 0><#list likes as column><#if index != 0>, </#if>"${ column }"<#assign index = index + 1></#list>})
 </#if>
-<#if betweens??>
-    <#list betweens as column>
-        /** BETWEEN */
-        @DataQuery(type = DataQuery.Type.BETWEEN)
-        private List<${column.propertyType}> ${column.property};
+<#if equalQuerys??>
+@QueryEqual(value = {<#assign index = 0><#list equalQuerys as column><#if index != 0>, </#if>"${column.prop}"<#assign index = index + 1></#list>})
+</#if>
+<#if between??>
+@QueryBetween(value = "${between}")
+</#if>
+public class ${entityName}Query extends BaseQueryAccess {
+<#if equalQuerys??>
+    <#list equalQuerys as column>
+    private ${column.type} ${column.prop};
     </#list>
 </#if>
 }
+<#--@formatter:on-->

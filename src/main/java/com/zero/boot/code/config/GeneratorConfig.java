@@ -1,14 +1,21 @@
+/*
+ * Copyright (c) 2023 wexuo. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ */
+
 package com.zero.boot.code.config;
 
 import com.zero.boot.code.data.ColumnData;
-import com.zero.boot.code.data.PropertyData;
+import com.zero.boot.code.data.PropertyWithType;
 import com.zero.boot.code.data.TableData;
+import com.zero.boot.core.query.QueryType;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Data
@@ -36,15 +43,13 @@ public class GeneratorConfig implements Serializable {
         final String pack = getPack(entityName);
 
         // get columns
-        final Map<String, Class<?>> propertyTypeMap = tableData.getPropertyTypeMap();
-        final List<ColumnData> columns = getColumns(propertyTypeMap);
         final GeneratorConfig config = new GeneratorConfig();
         config.setTableName(tableName);
         config.setPack(pack);
         config.setPath(path);
         config.setPrefix("t_");
         config.setCover(true);
-        config.setColumns(columns);
+        config.setColumns(getColumns(tableData));
         return config;
     }
 
@@ -56,26 +61,49 @@ public class GeneratorConfig implements Serializable {
     }
 
     private static String getPack(final String entityName) {
-        final int index = entityName.lastIndexOf(".");
-        return entityName.substring(0, index);
+        int idx = entityName.lastIndexOf(".pojo");
+        if (idx == -1) {
+            idx = entityName.lastIndexOf(".bean");
+        }
+        if (idx == -1) {
+            idx = entityName.lastIndexOf(".data");
+        }
+        if (idx == -1) {
+            idx = entityName.lastIndexOf(".");
+        }
+        return entityName.substring(0, idx);
     }
 
-    private static List<ColumnData> getColumns(final Map<String, Class<?>> propertyTypeMap) {
-        return propertyTypeMap.keySet().stream().map(property -> {
+    private static List<ColumnData> getColumns(final TableData tableData) {
+        final List<PropertyWithType> properties = tableData.getProperties();
+        if (CollectionUtils.isEmpty(properties)) {
+            return Collections.emptyList();
+        }
+        return properties.stream().map(property -> {
             final ColumnData columnData = new ColumnData();
 
-            final Class clazz = propertyTypeMap.get(property);
-
-            final PropertyData propertyData = new PropertyData();
-            propertyData.setProperty(property);
-            propertyData.setPropertyType(clazz.getSimpleName());
-
-            columnData.setPropertyData(propertyData);
+            columnData.setProperty(property);
             // set default
-            columnData.setForm(true);
-            columnData.setList(true);
+            columnData.setUpsert(true);
+            columnData.setTable(true);
             columnData.setRequired(true);
-            columnData.setFormType("el-input");
+            columnData.setComponent("el-input");
+            if (property.getProp().contains("name")) {
+                columnData.setQueryType(QueryType.LIKE);
+                columnData.setComponent("el-input");
+            }
+            if (property.getProp().contains("Time")) {
+                columnData.setQueryType(QueryType.BETWEEN);
+                columnData.setComponent("el-date-picker");
+                columnData.setRequired(false);
+            }
+            if (property.getProp().contains("status")) {
+                columnData.setQueryType(QueryType.EQUAL);
+                columnData.setComponent("el-select");
+            }
+            if (property.getProp().contains("img") || property.getProp().contains("avatar") || property.getProp().contains("pic")) {
+                columnData.setComponent("cl-upload");
+            }
             return columnData;
         }).collect(Collectors.toList());
     }

@@ -5,10 +5,6 @@
 
 package com.zero.boot.core.query;
 
-public interface QueryAccess {
-    String getKeyword();
-
-    Object getStart();
-
-    Object getEnd();
+public enum QueryType {
+    EQUAL, LIKE, IN, BETWEEN
 }

@@ -1,14 +1,23 @@
+/*
+ * Copyright (c) 2023 wexuo. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ */
+
 package com.zero.boot.code;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zero.boot.code.config.GeneratorConfig;
 import com.zero.boot.code.data.TableData;
 import com.zero.boot.code.data.TemplateData;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.ResourceUtils;
-import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import java.io.File;
@@ -18,50 +27,117 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Objects;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class BuilderFactory {
+    private static final ObjectMapper OM = new ObjectMapper();
+    private static final Map<String, GeneratorConfig> GENERATOR_CONFIG_MAP = new HashMap<>();
 
-    public static List<Path> build(final EntityManager manager){
-        List<TableData> tables = TemplateBuilder.getTableData(manager);
-        return tables.stream().map(tableData -> {
+    private static Path CONFIG_PATH = Paths.get(System.getProperty("user.home"), ".zero", "generator", "config.json");
+
+    static {
+        final Path path = Paths.get(System.getProperty("user.home"), ".zero", "generator");
+        if (Files.notExists(path)) {
             try {
-                return build(tableData);
-            } catch (final Exception e) {
-                // 忽略
+                Files.createDirectories(path);
+            } catch (final IOException e) {
+                log.error("init generator config dir failed", e);
             }
-            return null;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+        }
+        final Path resolve = path.resolve("config.json");
+        if (Files.notExists(resolve)) {
+            try {
+                CONFIG_PATH = Files.createFile(resolve);
+                Files.write(resolve, OM.writeValueAsBytes(GENERATOR_CONFIG_MAP));
+            } catch (final IOException e) {
+                log.error("init generator config file failed", e);
+            }
+        } else {
+            try {
+                final Map<String, GeneratorConfig> map = OM.readValue(resolve.toFile(), new TypeReference<Map<String, GeneratorConfig>>() {
+                });
+                GENERATOR_CONFIG_MAP.putAll(map);
+            } catch (final IOException e) {
+                log.error("init generator config failed", e);
+            }
+
+        }
     }
 
-    public static Path build(final TableData tableData) throws Exception {
-        GeneratorConfig config = GeneratorConfig.covert(tableData);
-        TemplateData templateData = TemplateData.covert(tableData, config);
-        return build(templateData);
+    public static String updateGeneratorConfig(final GeneratorConfig config) throws IOException {
+        GENERATOR_CONFIG_MAP.put(config.getTableName(), config);
+        Files.write(CONFIG_PATH, OM.writeValueAsBytes(config));
+        return config.getTableName();
     }
 
-    public static Path build(final TemplateData data) throws Exception {
-        final File backendFileDir = ResourceUtils.getFile("classpath:templates");
-        BuilderFactory.build(backendFileDir, "Controller.ftl", "controller", data.getEntityName(), "Controller.java", data);
-        BuilderFactory.build(backendFileDir, "Query.ftl", "query", data.getEntityName(), "Query.java", data);
-        BuilderFactory.build(backendFileDir, "Repository.ftl", "repository", data.getEntityName(), "Repository.java", data);
-        BuilderFactory.build(backendFileDir, "Service.ftl", "service", data.getEntityName(), "Service.java", data);
-
-        final File frontFileDir = ResourceUtils.getFile("classpath:templates");
-        BuilderFactory.build(frontFileDir, "index.ftl", "", "index", ".vue", data);
-        return Paths.get(System.getProperty("user.home"), ".zero", "template");
+    public static List<GeneratorConfig> getTemplateData(final EntityManager manager) {
+        final List<TableData> tables = TemplateBuilder.getTableData(manager);
+        return tables.stream().map(tableData -> {
+            GeneratorConfig config = GENERATOR_CONFIG_MAP.get(tableData.getTableName());
+            if (Objects.isNull(config)) {
+                config = GeneratorConfig.covert(tableData);
+            }
+            return config;
+        }).collect(Collectors.toList());
     }
 
-    public static void build(final File directory, final String filename, final String model, final String prefix, final String suffix,
+    public static List<Path> build(final String tableName, final EntityManager manager) throws Exception {
+        final List<TableData> tables = TemplateBuilder.getTableData(manager);
+        final Optional<TableData> optional = tables.stream().filter(tableData -> tableData.getTableName().equals(tableName)).findFirst();
+        if (optional.isPresent()) {
+            final TableData tableData = optional.get();
+            GeneratorConfig config = GENERATOR_CONFIG_MAP.get(tableData.getTableName());
+            if (Objects.isNull(config)) {
+                config = GeneratorConfig.covert(tableData);
+            }
+            return build(TemplateData.covert(tableData, config));
+        }
+        return Collections.emptyList();
+    }
+
+    public static List<Path> build(final TemplateData data) throws Exception {
+        final File path = ResourceUtils.getFile("classpath:templates");
+        final Path repository = BuilderFactory.build(path, "Repository.ftl", "repository", data.getEntityName(), "Repository.java", data);
+        final Path service = BuilderFactory.build(path, "Service.ftl", "service", data.getEntityName(), "Service.java", data);
+        final Path controller = BuilderFactory.build(path, "Controller.ftl", "controller", data.getEntityName(), "Controller.java", data);
+        final Path query = BuilderFactory.build(path, "Query.ftl", "query", data.getEntityName(), "Query.java", data);
+
+        final Path index = BuilderFactory.build(path, "index.ftl", "", "index", ".vue", data);
+        return Arrays.asList(repository, service, controller, query, index);
+    }
+
+    public static Path build(final File directory, final String filename, final String model, final String prefix, final String suffix,
                              final TemplateData data) throws Exception {
         final Template template = load(directory, filename);
         final String pack = data.getPack();
+        final Path path = getSystemPath(model, pack);
+        if (Files.notExists(path)) {
+            Files.createDirectories(path);
+        }
+        final Path resolve = path.resolve(prefix + suffix);
+        Files.deleteIfExists(resolve);
+        final Path filePath = Files.createFile(resolve);
+        final File file = filePath.toFile();
+        try {
+            BuilderFactory.process(template, data, file);
+            if (StringUtils.isNotEmpty(model)) {
+                Path target = getTargetPath(model, data.getClazz());
+                target = target.resolve(prefix + suffix);
+                Files.copy(filePath, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return filePath;
+        } catch (final TemplateException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    private static Path getSystemPath(final String model, final String pack) throws IOException {
         final StringBuilder builder = new StringBuilder(".zero");
         builder.append(" ").append(pack.replace(".", " "));
-        if (!StringUtils.isEmpty(model)) {
+        if (StringUtils.isNotEmpty(model)) {
             builder.append(" ").append(model);
         }
         final String[] dirs = builder.toString().split(" ");
@@ -70,11 +146,14 @@ public class BuilderFactory {
         if (Files.notExists(path)) {
             Files.createDirectories(path);
         }
-        final Path resolve = path.resolve(prefix + suffix);
-        Files.deleteIfExists(resolve);
-        final Path filePath = Files.createFile(resolve);
-        final File file = filePath.toFile();
-        BuilderFactory.process(template, data, file);
+        return path;
+    }
+
+    private static Path getTargetPath(final String model, final Class<?> clazz) {
+        String path = Objects.requireNonNull(clazz.getResource("")).getPath();
+        path = path.replaceAll("/target/classes", "/src/main/java");
+        final Path current = FileUtils.getFile(path).toPath();
+        return Paths.get(current.getParent().toString(), model);
     }
 
     /**

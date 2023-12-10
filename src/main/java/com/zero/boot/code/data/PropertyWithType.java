@@ -14,13 +14,12 @@ import java.io.Serializable;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-public class ItemData extends Property implements Serializable {
-    private String component;
-    private Boolean required;
+public class PropertyWithType extends Property implements Serializable {
 
-    public ItemData(final PropertyWithType property, final ColumnData column) {
+    private String type;
+
+    public PropertyWithType(final PropertyWithType property) {
         super(property);
-        this.component = column.getComponent();
-        this.required = column.getRequired();
+        this.type = property.getType();
     }
 }
