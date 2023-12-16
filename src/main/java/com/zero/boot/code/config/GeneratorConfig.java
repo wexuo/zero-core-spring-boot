@@ -79,6 +79,7 @@ public class GeneratorConfig implements Serializable {
         if (CollectionUtils.isEmpty(properties)) {
             return Collections.emptyList();
         }
+        final String idName = tableData.getIdentifierName();
         return properties.stream().map(property -> {
             final ColumnData columnData = new ColumnData();
 
@@ -87,6 +88,10 @@ public class GeneratorConfig implements Serializable {
             columnData.setUpsert(true);
             columnData.setTable(true);
             columnData.setRequired(true);
+            if (property.getProp().equals(idName)) {
+                columnData.setUpsert(false);
+                columnData.setTable(false);
+            }
             columnData.setComponent("el-input");
             if (property.getProp().contains("name")) {
                 columnData.setQueryType(QueryType.LIKE);
@@ -96,6 +101,7 @@ public class GeneratorConfig implements Serializable {
                 columnData.setQueryType(QueryType.BETWEEN);
                 columnData.setComponent("el-date-picker");
                 columnData.setRequired(false);
+                columnData.setUpsert(false);
             }
             if (property.getProp().contains("status")) {
                 columnData.setQueryType(QueryType.EQUAL);

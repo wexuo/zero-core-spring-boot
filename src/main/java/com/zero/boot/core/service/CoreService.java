@@ -9,11 +9,14 @@ import com.zero.boot.code.BuilderFactory;
 import com.zero.boot.code.config.GeneratorConfig;
 import com.zero.boot.core.data.EpsData;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CoreService {
@@ -30,8 +33,17 @@ public class CoreService {
         return BuilderFactory.getTemplateData(entityManager);
     }
 
-    public String updateGeneratorConfig(final GeneratorConfig config) throws IOException {
-        return BuilderFactory.updateGeneratorConfig(config);
+    public List<String> updateGeneratorConfig(final List<GeneratorConfig> configs) throws IOException {
+        if (CollectionUtils.isEmpty(configs)) {
+            return Collections.emptyList();
+        }
+        return configs.stream().map(config -> {
+            try {
+                return BuilderFactory.updateGeneratorConfig(config);
+            } catch (final IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
     }
 
     public void generate(final String tableName) throws Exception {

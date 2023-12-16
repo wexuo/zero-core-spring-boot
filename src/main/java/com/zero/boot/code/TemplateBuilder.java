@@ -16,8 +16,7 @@ import org.hibernate.metamodel.internal.MetamodelImpl;
 import org.hibernate.persister.entity.SingleTableEntityPersister;
 import org.hibernate.type.Type;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import javax.persistence.*;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +49,11 @@ public class TemplateBuilder {
         final List<PropertyWithType> properties = new ArrayList<>();
 
         for (final Field field : fields) {
+            if (field.isAnnotationPresent(OneToOne.class)
+                    || field.isAnnotationPresent(OneToMany.class)
+                    || field.isAnnotationPresent(ManyToMany.class)) {
+                continue;
+            }
             final String name = field.getName();
             final PropertyWithType property = new PropertyWithType();
             String label = name;

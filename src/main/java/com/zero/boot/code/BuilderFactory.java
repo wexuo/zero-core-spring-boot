@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zero.boot.code.config.GeneratorConfig;
 import com.zero.boot.code.data.TableData;
 import com.zero.boot.code.data.TemplateData;
+import com.zero.boot.core.util.ResourceUtil;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -21,6 +22,7 @@ import org.springframework.util.ResourceUtils;
 
 import javax.persistence.EntityManager;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,6 +35,7 @@ public class BuilderFactory {
     private static final ObjectMapper OM = new ObjectMapper();
     private static final Map<String, GeneratorConfig> GENERATOR_CONFIG_MAP = new HashMap<>();
 
+    private static final Path TEMPLATES_PATH = Paths.get(System.getProperty("user.home"), ".zero", "generator", "templates");
     private static Path CONFIG_PATH = Paths.get(System.getProperty("user.home"), ".zero", "generator", "config.json");
 
     static {
@@ -60,13 +63,43 @@ public class BuilderFactory {
             } catch (final IOException e) {
                 log.error("init generator config failed", e);
             }
+        }
+        if (Files.notExists(TEMPLATES_PATH)) {
+            try {
+                Files.createDirectories(TEMPLATES_PATH);
+            } catch (final IOException e) {
+                log.error("init templates dir failed", e);
+            }
+        }
+        create(path, "templates/Repository.ftl");
+        create(path, "templates/Service.ftl");
+        create(path, "templates/Controller.ftl");
+        create(path, "templates/Query.ftl");
+        create(path, "templates/index.ftl");
+    }
 
+    public static void create(final Path path, final String template) {
+        final Path resolve = path.resolve(template);
+        if (Files.notExists(resolve)) {
+            try {
+                final Path parent = resolve.getParent();
+                if (Files.notExists(parent)) {
+                    Files.createDirectories(parent);
+                }
+                final String res = ResourceUtil.getResource(template);
+                if (Objects.nonNull(res)) {
+                    Files.createFile(resolve);
+                    Files.write(resolve, res.getBytes(StandardCharsets.UTF_8));
+                }
+            } catch (final IOException e) {
+                log.error("init generator config file failed", e);
+            }
         }
     }
 
     public static String updateGeneratorConfig(final GeneratorConfig config) throws IOException {
         GENERATOR_CONFIG_MAP.put(config.getTableName(), config);
-        Files.write(CONFIG_PATH, OM.writeValueAsBytes(config));
+        Files.write(CONFIG_PATH, OM.writerWithDefaultPrettyPrinter().writeValueAsBytes(GENERATOR_CONFIG_MAP));
         return config.getTableName();
     }
 
@@ -76,6 +109,7 @@ public class BuilderFactory {
             GeneratorConfig config = GENERATOR_CONFIG_MAP.get(tableData.getTableName());
             if (Objects.isNull(config)) {
                 config = GeneratorConfig.covert(tableData);
+                GENERATOR_CONFIG_MAP.put(tableData.getTableName(), config);
             }
             return config;
         }).collect(Collectors.toList());
@@ -95,14 +129,27 @@ public class BuilderFactory {
         return Collections.emptyList();
     }
 
+    public static Map<String, List<Path>> build(final EntityManager manager) throws Exception {
+        final List<TableData> tables = TemplateBuilder.getTableData(manager);
+        final Map<String, List<Path>> result = new HashMap<>();
+        for (final TableData tableData : tables) {
+            GeneratorConfig config = GENERATOR_CONFIG_MAP.get(tableData.getTableName());
+            if (Objects.isNull(config)) {
+                config = GeneratorConfig.covert(tableData);
+            }
+            result.put(tableData.getTableName(), build(TemplateData.covert(tableData, config)));
+        }
+        return result;
+    }
+
     public static List<Path> build(final TemplateData data) throws Exception {
-        final File path = ResourceUtils.getFile("classpath:templates");
+        final File path = TEMPLATES_PATH.toFile();
         final Path repository = BuilderFactory.build(path, "Repository.ftl", "repository", data.getEntityName(), "Repository.java", data);
         final Path service = BuilderFactory.build(path, "Service.ftl", "service", data.getEntityName(), "Service.java", data);
         final Path controller = BuilderFactory.build(path, "Controller.ftl", "controller", data.getEntityName(), "Controller.java", data);
         final Path query = BuilderFactory.build(path, "Query.ftl", "query", data.getEntityName(), "Query.java", data);
 
-        final Path index = BuilderFactory.build(path, "index.ftl", "", "index", ".vue", data);
+        final Path index = BuilderFactory.build(path, "index.ftl", "", data.getEntityName(), "Index.vue", data);
         return Arrays.asList(repository, service, controller, query, index);
     }
 
@@ -131,9 +178,6 @@ public class BuilderFactory {
         final Template template = load(directory, filename);
         final String pack = data.getPack();
         final Path path = getSystemPath(model, pack);
-        if (Files.notExists(path)) {
-            Files.createDirectories(path);
-        }
         final Path resolve = path.resolve(prefix + suffix);
         Files.deleteIfExists(resolve);
         final Path filePath = Files.createFile(resolve);
@@ -142,7 +186,13 @@ public class BuilderFactory {
             BuilderFactory.process(template, data, file);
             if (StringUtils.isNotEmpty(model)) {
                 Path target = getTargetPath(model, data.getClazz());
+                if (Files.notExists(target)) {
+                    Files.createDirectories(target);
+                }
                 target = target.resolve(prefix + suffix);
+                if (Files.notExists(target)) {
+                    Files.createFile(target);
+                }
                 Files.copy(filePath, target, StandardCopyOption.REPLACE_EXISTING);
             }
             return filePath;

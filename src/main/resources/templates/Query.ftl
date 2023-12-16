@@ -1,8 +1,11 @@
 package ${pack}.query;
 
 import com.zero.boot.core.query.BaseQueryAccess;
-import com.zero.boot.core.query.*;
 import ${entityPackage};
+import com.zero.boot.core.query.annotation.Query;
+import com.zero.boot.core.query.annotation.QueryBetween;
+import com.zero.boot.core.query.annotation.QueryEqual;
+import com.zero.boot.core.query.annotation.QueryLike;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
