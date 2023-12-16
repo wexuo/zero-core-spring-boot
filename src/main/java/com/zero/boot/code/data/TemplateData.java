@@ -8,6 +8,7 @@ package com.zero.boot.code.data;
 import com.zero.boot.code.config.GeneratorConfig;
 import com.zero.boot.core.query.QueryType;
 import lombok.Data;
+import org.apache.commons.collections.CollectionUtils;
 
 import java.io.Serializable;
 import java.util.List;
@@ -76,13 +77,17 @@ public class TemplateData implements Serializable {
         final Optional<String> optional = querys.stream()
                 .filter(query -> QueryType.BETWEEN.equals(query.getQueryType()))
                 .map(QueryData::getProp).findFirst();
-
-        templateData.setLikes(likes);
-        templateData.setEqualQuerys(equals);
+        if (CollectionUtils.isNotEmpty(likes)) {
+            templateData.setLikes(likes);
+        }
+        if (CollectionUtils.isNotEmpty(equals)) {
+            templateData.setEqualQuerys(equals);
+        }
         optional.ifPresent(templateData::setBetween);
-
-        templateData.setItems(getItemData(columns));
-        templateData.setColumns(getColumns(columns));
+        if (CollectionUtils.isNotEmpty(columns)) {
+            templateData.setItems(getItemData(columns));
+            templateData.setColumns(getColumns(columns));
+        }
 
         templateData.setPath(config.getPath());
         templateData.setClazz(tableData.getClazz());

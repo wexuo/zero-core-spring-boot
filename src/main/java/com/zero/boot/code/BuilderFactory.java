@@ -80,20 +80,19 @@ public class BuilderFactory {
 
     public static void create(final Path path, final String template) {
         final Path resolve = path.resolve(template);
-        if (Files.notExists(resolve)) {
-            try {
-                final Path parent = resolve.getParent();
-                if (Files.notExists(parent)) {
-                    Files.createDirectories(parent);
-                }
-                final String res = ResourceUtil.getResource(template);
-                if (Objects.nonNull(res)) {
-                    Files.createFile(resolve);
-                    Files.write(resolve, res.getBytes(StandardCharsets.UTF_8));
-                }
-            } catch (final IOException e) {
-                log.error("init generator config file failed", e);
+        try {
+            Files.deleteIfExists(resolve);
+            final Path parent = resolve.getParent();
+            if (Files.notExists(parent)) {
+                Files.createDirectories(parent);
             }
+            final String res = ResourceUtil.getResource(template);
+            if (Objects.nonNull(res)) {
+                Files.createFile(resolve);
+                Files.write(resolve, res.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (final IOException e) {
+            log.error("init generator config file failed", e);
         }
     }
 

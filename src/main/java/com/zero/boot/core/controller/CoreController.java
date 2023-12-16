@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class CoreController {
@@ -40,7 +42,7 @@ public class CoreController {
     }
 
     @GetMapping("/generate")
-    public void generate(final String tableName) throws Exception {
-        coreService.generate(tableName);
+    public Map<String, List<Path>> generate(final String tableName) throws Exception {
+        return coreService.generate(tableName);
     }
 }

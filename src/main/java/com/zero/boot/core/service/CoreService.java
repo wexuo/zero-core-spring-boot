@@ -14,8 +14,8 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +46,13 @@ public class CoreService {
         }).collect(Collectors.toList());
     }
 
-    public void generate(final String tableName) throws Exception {
-        BuilderFactory.build(tableName, entityManager);
+    public Map<String, List<Path>> generate(final String tableName) throws Exception {
+        if (Objects.nonNull(tableName)) {
+            final List<Path> paths = BuilderFactory.build(tableName, entityManager);
+            return new HashMap<String, List<Path>>() {{
+                put(tableName, paths);
+            }};
+        }
+        return BuilderFactory.build(entityManager);
     }
 }
