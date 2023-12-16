@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.hibernate.metadata.ClassMetadata;
 import org.hibernate.metamodel.internal.MetamodelImpl;
-import org.hibernate.persister.entity.EntityPersister;
 import org.hibernate.persister.entity.SingleTableEntityPersister;
 import org.hibernate.type.Type;
 
@@ -22,7 +21,6 @@ import javax.persistence.EntityManagerFactory;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TemplateBuilder {
@@ -30,10 +28,8 @@ public class TemplateBuilder {
     public static List<TableData> getTableData(final EntityManager manager) {
         final EntityManagerFactory factory = manager.getEntityManagerFactory();
         final MetamodelImpl metamodel = (MetamodelImpl) factory.getMetamodel();
-
-        final Map<String, EntityPersister> persisters = metamodel.entityPersisters();
-
-        return persisters.values().stream().filter(entry -> entry instanceof SingleTableEntityPersister)
+        return metamodel.entityPersisters().values().stream()
+                .filter(entry -> entry instanceof SingleTableEntityPersister)
                 .map(entry -> (SingleTableEntityPersister) entry)
                 .map(TemplateBuilder::getTableData).collect(Collectors.toList());
     }

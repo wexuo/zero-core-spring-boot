@@ -20,10 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.ResourceUtils;
 
 import javax.persistence.EntityManager;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,6 +106,26 @@ public class BuilderFactory {
         return Arrays.asList(repository, service, controller, query, index);
     }
 
+    public static Map<String, ByteArrayOutputStream> process(final TemplateData data) throws Exception {
+        final File path = ResourceUtils.getFile("classpath:templates");
+        return new HashMap<String, ByteArrayOutputStream>() {
+            {
+                {
+                    put("Repository", BuilderFactory.process(path, "Repository.ftl", data));
+                    put("Service", BuilderFactory.process(path, "Service.ftl", data));
+                    put("Controller", BuilderFactory.process(path, "Controller.ftl", data));
+                    put("Query", BuilderFactory.process(path, "Query.ftl", data));
+                    put("Index", BuilderFactory.process(path, "index.ftl", data));
+                }
+            }
+        };
+    }
+
+    public static ByteArrayOutputStream process(final File path, final String filename, final TemplateData data) throws IOException, TemplateException {
+        final Template template = load(path, filename);
+        return BuilderFactory.process(template, data);
+    }
+
     public static Path build(final File directory, final String filename, final String model, final String prefix, final String suffix,
                              final TemplateData data) throws Exception {
         final Template template = load(directory, filename);
@@ -182,10 +199,11 @@ public class BuilderFactory {
         out.close();
     }
 
-    private static File getOutFile(final String dir, final String... more) throws IOException {
-        final Path path = Paths.get(dir, more);
-        Files.deleteIfExists(path);
-        final Path filePath = Files.createFile(path);
-        return filePath.toFile();
+    public static ByteArrayOutputStream process(final Template template, final TemplateData data) throws IOException, TemplateException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final Writer out = new OutputStreamWriter(outputStream);
+        template.process(data, out);
+        out.close();
+        return outputStream;
     }
 }
