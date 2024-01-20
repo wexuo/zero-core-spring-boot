@@ -70,6 +70,7 @@ public class CoreService {
             final EpsData eps = new EpsData();
             eps.setModule(module.name());
             eps.setName(module.desc());
+            eps.setPrefix("");
             final Class<?> entity = module.entity();
             final TableData tableData = tableDataMap.get(entity);
             if (Objects.nonNull(tableData)) {
@@ -83,6 +84,16 @@ public class CoreService {
                 }).collect(Collectors.toList());
                 eps.setColumns(columns);
             }
+
+            apis.forEach(api -> {
+                final String path = api.getPath();
+                final int idx = path.lastIndexOf("/");
+                final String prefix = path.substring(0, idx);
+                final String method = path.substring(idx + 1);
+                api.setPrefix(prefix);
+                api.setPath(method);
+            });
+
             eps.setApi(apis);
             return eps;
         }).filter(Objects::nonNull).collect(Collectors.groupingBy(EpsData::getModule));
