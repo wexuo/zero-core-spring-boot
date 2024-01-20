@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 wexuo. All rights reserved.
+ * Copyright (c) 2023-2024 wexuo. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  */
 
@@ -8,8 +8,6 @@ package com.zero.boot.code;
 
 import com.zero.boot.code.data.PropertyWithType;
 import com.zero.boot.code.data.TableData;
-import com.zero.boot.core.annotation.Comment;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.hibernate.metadata.ClassMetadata;
 import org.hibernate.metamodel.internal.MetamodelImpl;
@@ -46,36 +44,44 @@ public class TemplateBuilder {
         final Class<?> clazz = metadata.getMappedClass();
         final List<Field> fields = FieldUtils.getAllFieldsList(clazz);
 
-        final List<PropertyWithType> properties = new ArrayList<>();
-
-        for (final Field field : fields) {
-            if (field.isAnnotationPresent(OneToOne.class)
-                    || field.isAnnotationPresent(OneToMany.class)
-                    || field.isAnnotationPresent(ManyToMany.class)) {
-                continue;
-            }
-            final String name = field.getName();
-            final PropertyWithType property = new PropertyWithType();
-            String label = name;
-            if (field.isAnnotationPresent(Comment.class)) {
-                final Comment comment = field.getAnnotation(Comment.class);
-                final String value = comment.value();
-                if (StringUtils.isNotEmpty(value)) {
-                    label = value;
-                }
-            }
-            property.setLabel(label);
-            property.setProp(name);
-            property.setType(field.getType().getSimpleName());
-            properties.add(property);
-        }
         final TableData tableData = new TableData();
         tableData.setTableName(tableName);
         tableData.setEntityName(entityName);
         tableData.setClazz(clazz);
         tableData.setIdentifierName(identifierName);
         tableData.setIdentifierType(identifierClazz);
-        tableData.setProperties(properties);
+        tableData.setProperties(getPropertyWithTypes(fields));
         return tableData;
+    }
+
+    private static List<PropertyWithType> getPropertyWithTypes(final List<Field> fields) {
+        final List<PropertyWithType> properties = new ArrayList<>();
+        for (final Field field : fields) {
+            if (field.isAnnotationPresent(OneToOne.class)
+                    || field.isAnnotationPresent(OneToMany.class)
+                    || field.isAnnotationPresent(ManyToMany.class)) {
+                continue;
+            }
+            properties.add(getProperty(field));
+        }
+        return properties;
+    }
+
+    private static PropertyWithType getProperty(final Field field) {
+        final String name = field.getName();
+        final PropertyWithType property = new PropertyWithType();
+        property.setLabel(name);
+        property.setProp(name);
+        property.setType(field.getType().getSimpleName());
+        if (field.isAnnotationPresent(Id.class)) {
+            property.setNullable(false);
+        }
+        if (field.isAnnotationPresent(Column.class)) {
+            final Column column = field.getAnnotation(Column.class);
+            property.setNullable(column.nullable());
+        } else {
+            property.setNullable(true);
+        }
+        return property;
     }
 }

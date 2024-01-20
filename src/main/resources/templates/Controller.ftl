@@ -1,5 +1,6 @@
 package ${pack}.controller;
 
+import com.zero.boot.core.annotation.Module;
 import com.zero.boot.core.annotation.ResponseResult;
 import ${entityPackage};
 import ${pack}.query.${entityName}Query;
@@ -22,23 +23,24 @@ import java.util.Objects;
 @RestController
 @ResponseResult
 @RequestMapping("${path}")
+@Module(name = "admin", entity = ${entityName}.class, desc = "${entityName}管理")
 public class ${entityName}Controller {
 
     @Resource
     private ${entityName}Service service;
 
     /**
-     * 新增
+     * 新增 ${entityName}
      */
-    @PostMapping
+    @PostMapping(value = "/add")
     public ${entityName} add(@Validated @RequestBody final ${entityName} entity) {
         return this.service.save(entity);
     }
 
     /**
-     * 批量删除
+     * 批量删除 ${entityName}
      */
-    @DeleteMapping
+    @PostMapping(value = "/delete")
     public void delete(@RequestBody final List<${primaryKeyType}> ids) throws ServiceRuntimeException {
         if (CollectionUtils.isEmpty(ids)) {
             throw new ServiceRuntimeException(HttpStatus.BAD_REQUEST, "ids is empty");
@@ -47,23 +49,23 @@ public class ${entityName}Controller {
     }
 
     /**
-     * 更新
+     * 更新 ${entityName}
      */
-    @PutMapping
+    @PostMapping(value = "/update")
     public ${entityName} update(@Validated @RequestBody final ${entityName} entity) {
         return this.service.save(entity);
     }
 
     /**
-     * 查询全部
+     * 查询全部 ${entityName}
      */
     @GetMapping(value = "/list")
-    public <Q extends BaseQueryAccess> List<${entityName}> list(@RequestBody(required = false) final ${entityName}Query query) {
+    public <Q extends BaseQueryAccess> List<${entityName}> list(final ${entityName}Query query) {
         return this.service.list(query);
     }
 
     /**
-     * 条件+分页查询
+     * 条件+分页查询 ${entityName}
      */
     @GetMapping(value = "/page")
     public <Q extends BaseQueryAccess> PageResult<${entityName}> page(final ${entityName}Query query, final Pageable pageable) {
@@ -72,10 +74,10 @@ public class ${entityName}Controller {
     }
 
     /**
-     * 查询详情
+     * 查询 ${entityName} 详情
      */
-    @GetMapping(value = "/info/{id}")
-    public ${entityName} info(@PathVariable(value = "id") final ${primaryKeyType} id) throws ServiceRuntimeException {
+    @GetMapping(value = "/info")
+    public ${entityName} info(final ${primaryKeyType} id) throws ServiceRuntimeException {
         if (Objects.isNull(id)) {
             throw new ServiceRuntimeException(HttpStatus.BAD_REQUEST, "id is null");
         }

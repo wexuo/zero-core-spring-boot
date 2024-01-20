@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 wexuo. All rights reserved.
+ * Copyright (c) 2023-2024 wexuo. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  */
 
@@ -17,6 +17,8 @@ import java.io.Serializable;
 public class PropertyWithType extends Property implements Serializable {
 
     private String type;
+
+    private Boolean nullable;
 
     public PropertyWithType(final PropertyWithType property) {
         super(property);

@@ -1,29 +1,25 @@
 /*
- * Copyright (c) 2023 wexuo. All rights reserved.
+ * Copyright (c) 2023-2024 wexuo. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  */
 
 package com.zero.boot.core.data;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
 public class Result<T> {
 
-    @JsonProperty(value = "c")
     private final Integer code;
 
-    @JsonProperty(value = "m")
-    private final String msg;
+    private final String message;
 
-    @JsonProperty(value = "d")
     private final T data;
 
     public Result(final Integer code, final String msg, final T data) {
         this.code = code;
-        this.msg = msg;
+        this.message = msg;
         this.data = data;
     }
 

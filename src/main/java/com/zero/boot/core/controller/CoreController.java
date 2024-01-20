@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 wexuo. All rights reserved.
+ * Copyright (c) 2023-2024 wexuo. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  */
 
@@ -27,7 +27,7 @@ public class CoreController {
     private CoreService coreService;
 
     @GetMapping("/eps")
-    public EpsData getEps() {
+    public Map<String, List<EpsData>> getEps() {
         return coreService.eps();
     }
 
